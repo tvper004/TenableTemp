@@ -16,7 +16,23 @@ create_db() {
 EOSQL
 }
 
-# 1. Create Databases
+# 1. Ensure 'vicarius_user' exists (if not created by Docker default)
+# We do this because the app uses 'vicarius_user' but sometimes Docker init uses 'postgres'
+echo "Ensuring user 'vicarius_user' exists..."
+psql -v ON_ERROR_STOP=0 --username "$ADMIN_USER" --dbname "postgres" <<-EOSQL
+    DO
+    \$\$
+    BEGIN
+        IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'vicarius_user') THEN
+            CREATE ROLE vicarius_user WITH LOGIN PASSWORD 'VicariusT3N48l3' SUPERUSER;
+        ELSE
+            ALTER ROLE vicarius_user WITH PASSWORD 'VicariusT3N48l3' SUPERUSER;
+        END IF;
+    END
+    \$\$;
+EOSQL
+
+# 1b. Create Databases
 create_db "tenable_source_db"
 create_db "vicarius_source_db"
 create_db "integration_db"
