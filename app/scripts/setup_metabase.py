@@ -120,24 +120,56 @@ def add_database(session_id):
 def create_dashboard_and_cards(session_id, db_id):
     headers = {"X-Metabase-Session": session_id}
     
-    # 1. Create Collection
-    r = requests.post(f"{MB_URL}/api/collection", headers=headers, json={
-        "name": "vAnalyzer Reports",
-        "color": "#509EE3"
-    })
-    col_id = r.json()['id'] if r.status_code == 200 else None
+    # 1. Check/Create Collection
+    col_id = None
+    r_cols = requests.get(f"{MB_URL}/api/collection", headers=headers)
+    if r_cols.status_code == 200:
+        for col in r_cols.json():
+            if col['name'] == "vAnalyzer Reports":
+                col_id = col['id']
+                print("Collection 'vAnalyzer Reports' already exists.")
+                break
     
-    # 2. Create Dashboard
-    r = requests.post(f"{MB_URL}/api/dashboard", headers=headers, json={
-        "name": "Main Vulnerability Dashboard",
-        "collection_id": col_id,
-        "description": "Unified view of Tenable and Vicarius data"
-    })
-    dash_id = r.json()['id'] if r.status_code == 200 else None
-    if not dash_id: return
+    if not col_id:
+        r = requests.post(f"{MB_URL}/api/collection", headers=headers, json={
+            "name": "vAnalyzer Reports",
+            "color": "#509EE3"
+        })
+        if r.status_code == 200:
+            col_id = r.json()['id']
+            print("Created Collection 'vAnalyzer Reports'.")
+        else:
+            print(f"Failed to create collection: {r.text}")
+            return # Cannot proceed
+
+    # 2. Check/Create Dashboard
+    dash_id = None
+    r_dash = requests.get(f"{MB_URL}/api/dashboard", headers=headers)
+    if r_dash.status_code == 200:
+        for dash in r_dash.json():
+            if dash['name'] == "Main Vulnerability Dashboard" and dash['collection_id'] == col_id:
+                dash_id = dash['id']
+                print("Dashboard 'Main Vulnerability Dashboard' already exists. Skipping creation.")
+                return # Prevent duplicates
+
+    if not dash_id:
+        r = requests.post(f"{MB_URL}/api/dashboard", headers=headers, json={
+            "name": "Main Vulnerability Dashboard",
+            "collection_id": col_id,
+            "description": "Unified view of Tenable and Vicarius data"
+        })
+        if r.status_code == 200:
+            dash_id = r.json()['id']
+            print("Created Dashboard 'Main Vulnerability Dashboard'.")
+        else:
+            print(f"Failed to create dashboard: {r.text}")
+            return
 
     # Helper to create SQL Card
     def create_card(name, sql, viz_type="table"):
+        # Check if card exists in collection to avoid duplicates (Simple check by name)
+        # Note: Ideally we check deeper, but this is MVP idempotency
+        # For simplicity, we just create them for the new dashboard.
         card = {
             "name": name,
             "collection_id": col_id,
@@ -159,6 +191,7 @@ def create_dashboard_and_cards(session_id, db_id):
         })
 
     # Create Questions based on Views
+    print("Creating Questions and adding to Dashboard...")
     
     # Q1: Security Gap
     c1 = create_card("Security Gap Analysis", "SELECT * FROM \"View_Security_Gap_Analysis\"", "table")
