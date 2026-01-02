@@ -47,20 +47,35 @@ def wait_for_metabase():
         time.sleep(2)
     return False
 
-def get_session():
-    # 1. Try Login
-    payload = {"username": EMAIL, "password": PASSWORD}
+def try_login(email, password):
+    payload = {"username": email, "password": password}
     try:
         r = requests.post(f"{MB_URL}/api/session", json=payload)
         if r.status_code == 200:
-            log("Login successful.")
             return r.json()['id']
-        else:
-            log(f"Login failed ({r.status_code}). Response: {r.text}")
-    except Exception as e:
-        log(f"Login Exception: {e}")
+    except:
+        pass
+    return None
 
-    # 2. Try Setup
+def get_session():
+    # 1. Try Login with Configured Creds
+    log(f"Attempting login as {EMAIL}...")
+    sid = try_login(EMAIL, PASSWORD)
+    if sid:
+        log("Login successful.")
+        return sid
+    
+    # 2. Try Login with Fallback Defaults (in case volume persists with old entry)
+    fallback_user = "admin@vanalyzer.local"
+    fallback_pass = "Admin123456"
+    if EMAIL != fallback_user:
+        log(f"Login failed. Trying fallback user {fallback_user}...")
+        sid = try_login(fallback_user, fallback_pass)
+        if sid:
+            log("Fallback login successful.")
+            return sid
+
+    # 3. Try Setup (only if no user exists at all)
     try:
         r_token = requests.get(f"{MB_URL}/api/session/properties")
         setup_token = r_token.json().get('setup_token')
@@ -94,21 +109,8 @@ def get_session():
 def add_database(session_id):
     headers = {"X-Metabase-Session": session_id}
     
-    # Check if exists
-    try:
-        r = requests.get(f"{MB_URL}/api/database", headers=headers)
-        if r.status_code == 200:
-            dbs = r.json()
-            for db in dbs:
-                if db['name'] == "V-Analyzer Integration":
-                    log("Database 'V-Analyzer Integration' already exists.")
-                    return db['id']
-    except Exception as e:
-        log(f"Error checking databases: {e}")
-
-    # Add DB
-    log("Adding 'V-Analyzer Integration' Database...")
-    payload = {
+    # DB Configuration Payload
+    db_payload = {
         "name": "V-Analyzer Integration",
         "engine": "postgres",
         "details": {
@@ -117,10 +119,31 @@ def add_database(session_id):
             "dbname": DB_NAME,
             "user": DB_USER,
             "password": DB_PASS,
-            "ssl": False
+            "ssl": False # Force disable SSL
         }
     }
-    r = requests.post(f"{MB_URL}/api/database", json=payload, headers=headers)
+
+    # Check if exists
+    try:
+        r = requests.get(f"{MB_URL}/api/database", headers=headers)
+        if r.status_code == 200:
+            dbs = r.json()
+            for db in dbs:
+                if db['name'] == "V-Analyzer Integration":
+                    log("Database 'V-Analyzer Integration' exists. Updating configuration...")
+                    # Update existing DB to ensure SSL settings are correct
+                    r_upd = requests.put(f"{MB_URL}/api/database/{db['id']}", headers=headers, json=db_payload)
+                    if r_upd.status_code == 200:
+                        log("Database configuration updated.")
+                    else:
+                        log(f"Failed to update database: {r_upd.text}")
+                    return db['id']
+    except Exception as e:
+        log(f"Error checking databases: {e}")
+
+    # Add DB
+    log("Adding 'V-Analyzer Integration' Database...")
+    r = requests.post(f"{MB_URL}/api/database", json=db_payload, headers=headers)
     if r.status_code != 200:
         log(f"Failed to add Database: {r.text}")
         return None
@@ -229,7 +252,7 @@ def run():
 
         session_id = get_session()
         if not session_id:
-            log("Could not login or setup Metabase.")
+            log("Could not login or setup Metabase. Please check logs and credentials.")
             return
 
         db_id = add_database(session_id)
