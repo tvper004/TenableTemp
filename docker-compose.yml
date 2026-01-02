@@ -68,7 +68,7 @@ services:
         condition: service_healthy
     hostname: metabase
     ports:
-      - "3030:3000"
+      - "3030:3010"
     volumes:
       - metabase-data:/metabase-data
       - /etc/localtime:/etc/localtime:ro
@@ -81,11 +81,11 @@ services:
       MB_DB_PASS: ${POSTGRES_PASSWORD}
       MB_DB_HOST: appdb
       # Configuración de puerto
-      MB_JETTY_PORT: 3000
+      MB_JETTY_PORT: 3010
     networks:
       - vicarius-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:3010/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3

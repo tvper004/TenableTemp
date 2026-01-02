@@ -32,7 +32,8 @@ echo "✅ ETL Pipeline Completed."
 
 # Configure Metabase (Dashboards & Connections)
 echo "📊 Configuring Metabase..."
-/usr/local/bin/python /usr/src/app/scripts/setup_metabase.py >> /var/log/metabase_setup.log 2>&1
+/usr/local/bin/python /usr/src/app/scripts/setup_metabase.py > /var/log/metabase_setup.log 2>&1
+cat /var/log/metabase_setup.log
 echo "✅ Metabase Configuration Completed."
 
 # Keep container alive
