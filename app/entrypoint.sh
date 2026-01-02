@@ -15,17 +15,20 @@ fi
 
 sleep 20
 
-#/usr/local/bin/python /usr/src/app/scripts/VickyTopiaReportCLI.py --allreports  >> /var/log/crontab.log 2>&1
-#Initial Pull 
-echo "Initial Pull: Starting" 
-date
-/usr/local/bin/python /usr/src/app/scripts/VickyTopiaReportCLI.py --allreports >> /var/log/initialsync.log 2>&1
-#nohup /usr/local/bin/python /usr/src/app/scripts/launcher.py &
-echo "Initial Pull: Completed" 
-date
+# Legacy Scripts (Commented out for Refactor)
+#echo "Initial Pull: Starting" 
+#date
+#/usr/local/bin/python /usr/src/app/scripts/VickyTopiaReportCLI.py --allreports >> /var/log/initialsync.log 2>&1
+#echo "Initial Pull: Completed" 
+#date
+#echo "Starting Scheduler"
+#date
+#/usr/local/bin/python /usr/src/app/scripts/launcher.py
 
-# Start cron in foreground
-#cron -f
-echo "Starting Scheduler"
-date
-/usr/local/bin/python /usr/src/app/scripts/launcher.py
+# New Data Lakehouse Architecture Entrypoint
+echo "🚀 Starting Data Lakehouse ETL Orchestrator..."
+/usr/local/bin/python /usr/src/app/scripts/etl_orchestrator.py >> /var/log/etl.log 2>&1
+echo "✅ ETL Pipeline Completed."
+
+# Keep container alive
+tail -f /dev/null

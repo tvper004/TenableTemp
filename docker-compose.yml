@@ -8,8 +8,9 @@ services:
     restart: always
     environment:
       # Database configuration via environment variables
-      POSTGRES_DB: ${POSTGRES_DB:-vanalyzer}
-      POSTGRES_USER: ${POSTGRES_USER:-vicarius_user}
+      # We use postgres user as default admin to create other DBs
+      POSTGRES_DB: ${POSTGRES_DB:-postgres} 
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres-data:/var/lib/postgresql/data
@@ -17,7 +18,8 @@ services:
     networks:
       - vicarius-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-vicarius_user} -d ${POSTGRES_DB:-vanalyzer} && pg_isready -U ${POSTGRES_USER:-vicarius_user} -d metabase"]
+      # Check for integration_db existence to ensure init script ran
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d integration_db"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -50,11 +52,10 @@ services:
       TENABLE_SECRET_KEY: ${TENABLE_SECRET_KEY}
       
       # Database Configuration
-      POSTGRES_DB: ${POSTGRES_DB:-vanalyzer}
-      POSTGRES_USER: ${POSTGRES_USER:-vanalyzer_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_HOST: appdb
       POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       
       # Optional Tools
       OPTIONAL_TOOLS: ${OPTIONAL_TOOLS:-}
@@ -72,11 +73,11 @@ services:
       - metabase-data:/metabase-data
       - /etc/localtime:/etc/localtime:ro
     environment:
-      # Metabase Database Configuration
+      # Metabase Internal Database Configuration
       MB_DB_TYPE: postgres
       MB_DB_DBNAME: metabase
       MB_DB_PORT: 5432
-      MB_DB_USER: ${POSTGRES_USER:-vicarius_user}
+      MB_DB_USER: ${POSTGRES_USER:-postgres}
       MB_DB_PASS: ${POSTGRES_PASSWORD}
       MB_DB_HOST: appdb
       # Configuración de puerto
