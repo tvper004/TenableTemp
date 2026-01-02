@@ -30,5 +30,10 @@ echo "🚀 Starting Data Lakehouse ETL Orchestrator..."
 /usr/local/bin/python /usr/src/app/scripts/etl_orchestrator.py >> /var/log/etl.log 2>&1
 echo "✅ ETL Pipeline Completed."
 
+# Configure Metabase (Dashboards & Connections)
+echo "📊 Configuring Metabase..."
+/usr/local/bin/python /usr/src/app/scripts/setup_metabase.py >> /var/log/metabase_setup.log 2>&1
+echo "✅ Metabase Configuration Completed."
+
 # Keep container alive
 tail -f /dev/null
