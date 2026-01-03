@@ -67,6 +67,14 @@ class TenableIngestor:
                 if col not in df_assets.columns: df_assets[col] = None
             
             # Load Assets
+            # FIX: Drop dependent child table first to allow parent 'replace'
+            with self.engine.connect() as conn:
+                try:
+                    conn.execute(sa.text('DROP TABLE IF EXISTS "Tenable_Vulns_Raw" CASCADE'))
+                    conn.commit()
+                except Exception as e:
+                    logger.warning(f"Could not drop child table: {e}")
+
             df_assets[['asset_uuid', 'hostname', 'fqdn', 'operating_system', 'last_seen']].to_sql(
                 'Tenable_Assets_Raw', self.engine, if_exists='replace', index=False
             )
