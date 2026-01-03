@@ -140,14 +140,20 @@ def add_database(session_id):
                     return db['id']
     except Exception as e:
         log(f"Error checking databases: {e}")
+        # If we can't check, we shouldn't blindly add, as it causes duplicates.
+        return None
 
     # Add DB
     log("Adding 'V-Analyzer Integration' Database...")
-    r = requests.post(f"{MB_URL}/api/database", json=db_payload, headers=headers)
-    if r.status_code != 200:
-        log(f"Failed to add Database: {r.text}")
+    try:
+        r = requests.post(f"{MB_URL}/api/database", json=db_payload, headers=headers)
+        if r.status_code != 200:
+            log(f"Failed to add Database: {r.text}")
+            return None
+        return r.json()['id']
+    except Exception as e:
+        log(f"Error adding database: {e}")
         return None
-    return r.json()['id']
 
 def create_dashboard_and_cards(session_id, db_id):
     headers = {"X-Metabase-Session": session_id}
