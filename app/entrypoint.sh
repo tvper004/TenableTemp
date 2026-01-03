@@ -27,7 +27,7 @@ sleep 20
 
 # New Data Lakehouse Architecture Entrypoint
 echo "🚀 Starting Data Lakehouse ETL Orchestrator..."
-/usr/local/bin/python /usr/src/app/scripts/etl_orchestrator.py >> /var/log/etl.log 2>&1
+/usr/local/bin/python /usr/src/app/scripts/etl_orchestrator.py 2>&1 | tee -a /var/log/etl.log
 echo "✅ ETL Pipeline Completed."
 
 # Configure Metabase (Dashboards & Connections)
