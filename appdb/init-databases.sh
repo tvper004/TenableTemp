@@ -118,6 +118,7 @@ psql -v ON_ERROR_STOP=1 --username "$ADMIN_USER" --dbname "integration_db" <<-EO
         severity TEXT,
         source_detection TEXT, -- AMBAS, TENABLE_ONLY, VICARIUS_ONLY
         status TEXT,
+        group_name TEXT,
         detection_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
