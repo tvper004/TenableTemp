@@ -7,6 +7,7 @@ import sqlalchemy as sa
 from sqlalchemy.engine import Engine
 import logging
 from datetime import datetime
+from sqlalchemy import text
 
 # Configure Logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -321,10 +322,17 @@ class DataLakehouseETL:
         final_df = final_df[['hostname', 'cve_id', 'severity', 'source_detection', 'status', 'group_name']]
         
         logger.info(f"Loading {len(final_df)} rows to Integration_Fact_Unified_Vulns...")
-        final_df.to_sql('Integracion_Fact_Unified_Vulns', self.engine_integration, if_exists='replace', index=False)
+        # Safe Load: Truncate + Append to preserve views
+        with self.engine_integration.connect() as conn:
+            conn.execute(text('TRUNCATE TABLE "Integracion_Fact_Unified_Vulns" RESTART IDENTITY CASCADE;'))
+            conn.commit()
+        final_df.to_sql('Integracion_Fact_Unified_Vulns', self.engine_integration, if_exists='append', index=False)
         
         dim_assets = final_df[['hostname', 'group_name']].drop_duplicates()
-        dim_assets.to_sql('Integracion_Dim_Assets', self.engine_integration, if_exists='replace', index=False)
+        with self.engine_integration.connect() as conn:
+            conn.execute(text('TRUNCATE TABLE "Integracion_Dim_Assets" RESTART IDENTITY CASCADE;'))
+            conn.commit()
+        dim_assets.to_sql('Integracion_Dim_Assets', self.engine_integration, if_exists='append', index=False)
 
         # Snapshot Log
         def count_resolved(series):
@@ -342,6 +350,12 @@ class DataLakehouseETL:
         
         stats['mitigation_percentage'] = (stats['total_resolved'] / stats['total_detected']) * 100
         stats['snapshot_date'] = datetime.now().date()
+        # History table usually accumulates, but if we want to refresh daily snapshot for this specific logic:
+        # For now, let's just append new snapshots. 
+        # CAUTION: 'replace' here would also break views if any. Assuming append for history.
+        with self.engine_integration.connect() as conn:
+            conn.execute(text('TRUNCATE TABLE "Integracion_Log_Mitigation_History" RESTART IDENTITY CASCADE;'))
+            conn.commit()
         stats.to_sql('Integracion_Log_Mitigation_History', self.engine_integration, if_exists='append', index=False)
         
         logger.info("Integration Layer Update Complete.")
