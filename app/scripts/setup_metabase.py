@@ -13,7 +13,7 @@ MB_User_File = "/usr/src/app/scripts/mbuser.json"
 # Database Config for Metabase to connect to
 DB_HOST = os.getenv('POSTGRES_HOST', 'appdb')
 DB_PORT = os.getenv('POSTGRES_PORT', '5432')
-DB_USER = os.getenv('POSTGRES_USER', 'postgres')
+DB_USER = os.getenv('POSTGRES_USER', 'vicarius_user')
 DB_PASS = os.getenv('POSTGRES_PASSWORD', 'VicariusT3N48l3')
 DB_NAME = "integration_db"
 
