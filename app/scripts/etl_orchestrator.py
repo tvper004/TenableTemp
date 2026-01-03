@@ -82,9 +82,12 @@ class TenableIngestor:
             logger.info(f"Loaded {len(df_assets)} Tenable Assets.")
             
             # Fetch Vulns (MVP: Loop assets)
-            logger.info("Fetching Vulnerabilities from Tenable...")
+            logger.info(f"Fetching Vulnerabilities for {len(df_assets)} assets...")
             all_vulns = []
-            for _, row in df_assets.iterrows():
+            total_assets = len(df_assets)
+            for i, row in df_assets.iterrows():
+                if (i + 1) % 50 == 0:
+                    logger.info(f"  > Progress: Processed {i + 1}/{total_assets} assets...")
                 vulns = self._get_asset_vulns(row['asset_uuid'])
                 all_vulns.extend(vulns)
             
@@ -119,7 +122,7 @@ class TenableIngestor:
     def _get_asset_vulns(self, asset_uuid):
         url = f"{self.base_url}/workbenches/assets/{asset_uuid}/vulnerabilities"
         try:
-            time.sleep(0.5) # Rate limit
+            time.sleep(0.1) # Optimized Rate limit
             resp = requests.get(url, headers=self.headers)
             if resp.status_code == 200:
                 vulns = resp.json().get('vulnerabilities', [])
