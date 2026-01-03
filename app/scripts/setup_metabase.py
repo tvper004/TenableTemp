@@ -128,8 +128,19 @@ def add_database(session_id):
         r = requests.get(f"{MB_URL}/api/database", headers=headers)
         if r.status_code == 200:
             dbs = r.json()
+            # Handle potential pagination or wrapper (e.g., {'data': [...]})
+            if isinstance(dbs, dict) and 'data' in dbs:
+                dbs = dbs['data']
+            
+            if not isinstance(dbs, list):
+                log(f"Unexpected DB response format (type {type(dbs)}): {str(dbs)[:200]}")
+                # We return None here so we don't assume safe to add. 
+                # But we might want to fail-open if we are sure it doesn't exist? 
+                # Better to be safe to avoid duplicates.
+                return None
+
             for db in dbs:
-                if db['name'] == "V-Analyzer Integration":
+                if isinstance(db, dict) and db.get('name') == "V-Analyzer Integration":
                     log("Database 'V-Analyzer Integration' exists. Updating configuration...")
                     # Update existing DB to ensure SSL settings are correct
                     r_upd = requests.put(f"{MB_URL}/api/database/{db['id']}", headers=headers, json=db_payload)
@@ -140,7 +151,7 @@ def add_database(session_id):
                     return db['id']
     except Exception as e:
         log(f"Error checking databases: {e}")
-        # If we can't check, we shouldn't blindly add, as it causes duplicates.
+        traceback.print_exc()
         return None
 
     # Add DB
