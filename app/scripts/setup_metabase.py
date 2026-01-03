@@ -209,6 +209,7 @@ def create_dashboard_and_cards(session_id, db_id):
             "name": name,
             "collection_id": col_id,
             "display": viz_type,
+            "visualization_settings": {},  # New Requirement for Metabase v0.50+
             "dataset_query": {
                 "database": db_id,
                 "type": "native",
